@@ -36,5 +36,5 @@ jobs:
       
     - name: Run Unit Tests
       run: |
-        ant test-unit \
+        ant test \
         -Dtest.include=org.apache.cassandra.cql3.statements.SelectStatementTest
