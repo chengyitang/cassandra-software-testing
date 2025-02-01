@@ -60,4 +60,15 @@ public class SelectStatementTest
         Assert.assertEquals(Slices.NONE, parseSelect("SELECT * FROM ks.tbl WHERE k=100 AND c < 10 AND c >= 10").makeSlices(QueryOptions.DEFAULT));
         Assert.assertEquals(Slices.NONE, parseSelect("SELECT * FROM ks.tbl WHERE k=100 AND c < 10 AND c > 10").makeSlices(QueryOptions.DEFAULT));
     }
+
+    @Test // New Test: Test Integer Parition Key Boundaries
+    public void testIntegerPartitionBoundaries() 
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.int_boundaries (k int, v text, PRIMARY KEY (k))");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.int_boundaries (k, v) VALUES (?, 'min')", Integer.MIN_VALUE);  // -2147483648
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.int_boundaries (k, v) VALUES (0, 'zero')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.int_boundaries (k, v) VALUES (?, 'max')", Integer.MAX_VALUE);  // 2147483647
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.int_boundaries WHERE k = " + Integer.MIN_VALUE).makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.int_boundaries WHERE k = " + Integer.MAX_VALUE).makeSlices(QueryOptions.DEFAULT));
+    }
 }
