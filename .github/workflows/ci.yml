@@ -1,12 +1,10 @@
 name: Java CI
-
 on:
   push:
     branches: [ "trunk" ]
   pull_request:
     branches: [ "trunk" ]
   workflow_dispatch:
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,7 +17,9 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
-        cache: 'ant'  # 啟用 Ant 構建快取
+        
+    - name: Install Ant
+      run: sudo apt-get update && sudo apt-get install ant -y
         
     - name: Cache Ant dependencies
       uses: actions/cache@v3
@@ -33,7 +33,7 @@ jobs:
 
     - name: Build Cassandra
       run: ant jar
-
+      
     - name: Run Unit Tests
       run: |
         ant test-unit \
