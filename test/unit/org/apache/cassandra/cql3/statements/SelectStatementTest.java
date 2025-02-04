@@ -71,4 +71,24 @@ public class SelectStatementTest
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.int_boundaries WHERE k = " + Integer.MIN_VALUE).makeSlices(QueryOptions.DEFAULT));
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.int_boundaries WHERE k = " + Integer.MAX_VALUE).makeSlices(QueryOptions.DEFAULT));
     }
+
+    @Test // New Test: Test Null Values Handling
+    public void testNullValuesHandling() 
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.null_test (id int PRIMARY KEY, value text)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.null_test (id, value) VALUES (1, null)");
+        Assert.assertEquals(Slices.NONE, parseSelect("SELECT * FROM ks.null_test WHERE value = 'nonexistent'").makeSlices(QueryOptions.DEFAULT));
+    }
+
+    @Test // New Test: Test String Partition Key Boundaries
+    public void testStringPartitionBoundaries() 
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.string_boundaries (k text PRIMARY KEY, v text)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.string_boundaries (k, v) VALUES ('', 'empty')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.string_boundaries (k, v) VALUES ('a', 'a')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.string_boundaries (k, v) VALUES ('z', 'z')");
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.string_boundaries WHERE k = ''").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.string_boundaries WHERE k = 'a'").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.string_boundaries WHERE k = 'z'").makeSlices(QueryOptions.DEFAULT));
+    }
 }
