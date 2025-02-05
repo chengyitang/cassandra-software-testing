@@ -91,4 +91,22 @@ public class SelectStatementTest
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.string_boundaries WHERE k = 'a'").makeSlices(QueryOptions.DEFAULT));
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.string_boundaries WHERE k = 'z'").makeSlices(QueryOptions.DEFAULT));
     }
+
+    @Test // New Test: Test Composite Partition Key Boundaries
+    public void testCompositePartitionKeyBounds() {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.composite_key (k1 int, k2 text, v int, PRIMARY KEY ((k1, k2)))");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'a', 0)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'b', 0)");
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'a'").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'b'").makeSlices(QueryOptions.DEFAULT));
+    }
+
+    @Test // New Test: Test Timestamp Boundaries
+    public void testTimestampBoundaries() {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.timestamp_bounds (k timestamp PRIMARY KEY, v text)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.timestamp_bounds (k, v) VALUES ('1970-01-01 00:00:00', 'epoch')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.timestamp_bounds (k, v) VALUES ('9999-12-31 23:59:59', 'far_future')");
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.timestamp_bounds WHERE k = '1970-01-01 00:00:00'").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.timestamp_bounds WHERE k = '9999-12-31 23:59:59'").makeSlices(QueryOptions.DEFAULT));
+    }
 }
