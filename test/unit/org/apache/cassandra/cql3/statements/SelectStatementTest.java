@@ -109,4 +109,35 @@ public class SelectStatementTest
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.timestamp_bounds WHERE k = '1970-01-01 00:00:00'").makeSlices(QueryOptions.DEFAULT));
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.timestamp_bounds WHERE k = '9999-12-31 23:59:59'").makeSlices(QueryOptions.DEFAULT));
     }
+
+    @Test // New Test: Test UUID Partition Key Behavior
+    public void testUUIDPartitionKeyBehavior()
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.uuid_test (k uuid, v text, PRIMARY KEY (k))");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.uuid_test (k, v) VALUES (uuid(), 'random_uuid')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.uuid_test (k, v) VALUES (uuid(), 'another_uuid')");
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.uuid_test").makeSlices(QueryOptions.DEFAULT));
+    }
+
+    @Test // New Test: Test Boolean Partition Key Behavior
+    public void testBooleanPartitionKeyBehavior()
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.boolean_test (k boolean, v text, PRIMARY KEY (k))");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.boolean_test (k, v) VALUES (true, 'true_value')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.boolean_test (k, v) VALUES (false, 'false_value')");
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.boolean_test WHERE k = true").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.boolean_test WHERE k = false").makeSlices(QueryOptions.DEFAULT));
+    }
+
+    @Test // New Test: Test Floating-Point Partition Boundaries
+    public void testFloatingPointPartitionBoundaries()
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.float_test (k double, v text, PRIMARY KEY (k))");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.float_test (k, v) VALUES (-1.7976931348623157E308, 'min_double')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.float_test (k, v) VALUES (0.0, 'zero_double')");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.float_test (k, v) VALUES (1.7976931348623157E308, 'max_double')");
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.float_test WHERE k = -1.7976931348623157E308").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.float_test WHERE k = 0.0").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.float_test WHERE k = 1.7976931348623157E308").makeSlices(QueryOptions.DEFAULT));
+    }
 }
