@@ -30,7 +30,7 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.db.Slices;
 import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.service.ClientState;
-
+import org.apache.cassandra.exceptions.SyntaxException;
 public class SelectStatementTest
 {
 
@@ -139,5 +139,28 @@ public class SelectStatementTest
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.float_test WHERE k = -1.7976931348623157E308").makeSlices(QueryOptions.DEFAULT));
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.float_test WHERE k = 0.0").makeSlices(QueryOptions.DEFAULT));
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.float_test WHERE k = 1.7976931348623157E308").makeSlices(QueryOptions.DEFAULT));
+    }
+
+    /**
+     *  Functional State Machine Tests  
+     */
+    @Test // New Test: Test Successful Query Flow
+    public void testSuccessfulQuery() 
+    {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.fsm_test (id int PRIMARY KEY, value text)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.fsm_test (id, value) VALUES (1, 'test')");
+        SelectStatement stmt = parseSelect("SELECT * FROM ks.fsm_test WHERE id = 1");
+        Assert.assertNotNull(stmt.makeSlices(QueryOptions.DEFAULT));
+    }
+
+    @Test // New Test: Test Syntax Error
+    public void testSyntaxError() 
+    {
+        try {
+            parseSelect("SELECT * test_table");
+            Assert.fail("Expected SyntaxException was not thrown");
+        } catch (SyntaxException e) {
+            // expected to throw SyntaxException
+        }
     }
 }
