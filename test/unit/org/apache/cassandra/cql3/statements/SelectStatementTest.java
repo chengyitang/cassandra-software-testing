@@ -31,6 +31,7 @@ import org.apache.cassandra.db.Slices;
 import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.exceptions.SyntaxException;
+import org.apache.cassandra.exceptions.InvalidRequestException;
 public class SelectStatementTest
 {
 
@@ -163,4 +164,25 @@ public class SelectStatementTest
             // expected to throw SyntaxException
         }
     }
+
+    @Test // New Test: Test Table Validation Error
+    public void testTableValidationError() {
+        try {
+            QueryProcessor.executeOnceInternal("SELECT * FROM nonexistent_table");
+            Assert.fail("Expected InvalidRequestException was not thrown");
+        } catch (InvalidRequestException e) {
+        }
+    }
+
+    @Test // New Test: Test Column Validation Error
+    public void testColumnValidationError() {
+        try {
+            QueryProcessor.executeOnceInternal("CREATE TABLE ks.fsm_test2 (id int PRIMARY KEY, value text)");
+            QueryProcessor.executeOnceInternal("SELECT nonexistent_column FROM ks.fsm_test2");
+            Assert.fail("Expected InvalidRequestException was not thrown");
+        } catch (InvalidRequestException e) {
+        }
+        
+    }
+
 }
