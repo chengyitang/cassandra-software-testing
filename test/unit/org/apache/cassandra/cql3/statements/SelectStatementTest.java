@@ -185,4 +185,29 @@ public class SelectStatementTest
         
     }
 
+    @Test // New Test: Test Execution Error Handling
+    public void testExecutionError() throws Throwable {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.fsm_test3 (id int PRIMARY KEY, value text)");
+
+        try {
+            QueryProcessor.executeOnceInternal("SELECT * FROM ks.fsm_test3 WHERE id = 1/0");
+            Assert.fail("Expected InvalidRequestException was not thrown");
+        } catch (InvalidRequestException e) {
+            // Expected exception
+        }
+    }
+
+    @Test // New Test: Test Complex Query Validation
+    public void testComplexQueryValidation() throws Throwable {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.fsm_test4 (id int PRIMARY KEY, value text, data int)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.fsm_test4 (id, value, data) VALUES (1, 'test', 100)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.fsm_test4 (id, value, data) VALUES (2, 'test2', 200)");
+
+        SelectStatement stmt = parseSelect(
+            "SELECT id, value, data FROM ks.fsm_test4 WHERE id IN (1, 2) AND data > 150 ALLOW FILTERING"
+        );
+
+        Assert.assertNotNull(stmt);
+    }
+
 }
