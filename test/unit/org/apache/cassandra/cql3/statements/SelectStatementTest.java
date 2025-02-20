@@ -211,6 +211,37 @@ public class SelectStatementTest
     }
 
     @Test
+    public void testAuthorize() {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.auth_test (id int PRIMARY KEY, value text)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.auth_test (id, value) VALUES (1, 'test')");
+        SelectStatement stmt = SelectStatementTest.parseSelect("SELECT * FROM ks.auth_test WHERE id = 1");
+        try {
+            stmt.authorize(ClientState.forInternalCalls());
+        } catch (Exception e) {
+            fail("authorize() should not throw an exception for a valid ClientState: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testToStringMethod() {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.to_string_test (id int PRIMARY KEY, value text)");
+        // No row insertion is needed just to check toString() output
+        SelectStatement stmt = SelectStatementTest.parseSelect("SELECT * FROM ks.to_string_test WHERE id = 1");
+        String str = stmt.toString();
+        assertNotNull("toString() should not return null", str);
+        assertTrue("toString() output should contain keyspace", str.contains("ks"));
+        assertTrue("toString() output should contain table name", str.contains("to_string_test"));
+    }
+
+    @Test
+    public void testTableMethod() {
+        QueryProcessor.executeOnceInternal("CREATE TABLE ks.table_test (id int PRIMARY KEY, value text)");
+        SelectStatement stmt = SelectStatementTest.parseSelect("SELECT * FROM ks.table_test WHERE id = 1");
+        String tableName = stmt.table();
+        assertEquals("table_test", tableName);
+    }
+
+    @Test
     public void testKeyspaceMethod() throws Throwable {
         SelectStatement stmt = parseSelect("SELECT * FROM ks.test_table");
         Assert.assertNotNull(stmt);
