@@ -210,4 +210,11 @@ public class SelectStatementTest
         Assert.assertNotNull(stmt);
     }
 
+    @Test
+    public void testKeyspaceMethod() throws Throwable {
+        SelectStatement stmt = parseSelect("SELECT * FROM ks.test_table");
+        Assert.assertNotNull(stmt);
+        Assert.assertEquals("ks", stmt.keyspace());
+    }
+
 }
