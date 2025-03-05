@@ -34,6 +34,8 @@ import org.apache.cassandra.exceptions.SyntaxException;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.*;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 
 public class SelectStatementTest
 {
@@ -229,6 +231,9 @@ public class SelectStatementTest
         Assert.assertNotNull(stmt);
     }
 
+    /**
+     *  Enhanced Coverage Tests
+     */
     @Test
     public void testAuthorize() {
         QueryProcessor.executeOnceInternal("CREATE TABLE ks.auth_test (id int PRIMARY KEY, value text)");
@@ -260,9 +265,12 @@ public class SelectStatementTest
         assertEquals("table_test", tableName);
     }
 
+    /**
+     *  Modification of testNonsensicalBounds() with Testable Design
+     */
+
     @Test
-    public void testBoundsValidation()
-    {
+    public void testBoundsValidation() {
         // Test cases with nonsensical/contradictory bounds
         assertFalse("Greater than AND less than or equal to same value should be invalid",
             hasValidBounds("k=100 AND c > 10 AND c <= 10"));
@@ -296,6 +304,5 @@ public class SelectStatementTest
             
         assertFalse("Contradictory timestamp bounds should be invalid",
             hasValidBounds("k='2023-01-01' AND c > '2023-01-01 10:00:00' AND c < '2023-01-01 09:00:00'"));
-}
-
+    }
 }
