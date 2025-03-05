@@ -55,6 +55,22 @@ public class SelectStatementTest
         return (SelectStatement) stmt;
     }
 
+    public static boolean hasValidBounds(String whereClause) {
+        try {
+            // Construct a minimal query with the provided WHERE clause
+            String query = "SELECT * FROM system.local WHERE " + whereClause;
+            
+            // Parse the statement (this will work even if the table doesn't exist)
+            SelectStatement stmt = parseSelect(query);
+            
+            // Check if the slice is NONE, which indicates nonsensical bounds
+            return stmt.makeSlices(QueryOptions.DEFAULT) != Slices.NONE;
+        } catch (Exception e) {
+            // If there's a syntax error or other issue, the bounds are invalid
+            return false;
+        }
+    }
+
     @Test
     public void testNonsensicalBounds()
     {
@@ -243,5 +259,43 @@ public class SelectStatementTest
         String tableName = stmt.table();
         assertEquals("table_test", tableName);
     }
+
+    @Test
+    public void testBoundsValidation()
+    {
+        // Test cases with nonsensical/contradictory bounds
+        assertFalse("Greater than AND less than or equal to same value should be invalid",
+            hasValidBounds("k=100 AND c > 10 AND c <= 10"));
+            
+        assertFalse("Less than AND greater than or equal to same value should be invalid",
+            hasValidBounds("k=100 AND c < 10 AND c >= 10"));
+            
+        assertFalse("Less than AND greater than same value should be invalid",
+            hasValidBounds("k=100 AND c < 10 AND c > 10"));
+        
+        // Test cases with valid bounds
+        assertTrue("Greater than x AND less than y (where y > x) should be valid",
+            hasValidBounds("k=100 AND c > 10 AND c < 20"));
+            
+        assertTrue("Greater than or equal to x AND less than or equal to x should be valid (point query)",
+            hasValidBounds("k=100 AND c >= 10 AND c <= 10"));
+            
+        assertTrue("Equal to x should be valid",
+            hasValidBounds("k=100 AND c = 10"));
+        
+        // Edge cases
+        assertTrue("IN clause should be valid",
+            hasValidBounds("k=100 AND c IN (5, 10, 15)"));
+            
+        assertFalse("Contradictory equality constraints should be invalid",
+            hasValidBounds("k=100 AND c = 10 AND c = 20"));
+        
+        // Test with different column types (timestamp)
+        assertTrue("Timestamp bounds should follow same rules",
+            hasValidBounds("k='2023-01-01' AND c > '2023-01-01 10:00:00' AND c < '2023-01-01 11:00:00'"));
+            
+        assertFalse("Contradictory timestamp bounds should be invalid",
+            hasValidBounds("k='2023-01-01' AND c > '2023-01-01 10:00:00' AND c < '2023-01-01 09:00:00'"));
+}
 
 }
