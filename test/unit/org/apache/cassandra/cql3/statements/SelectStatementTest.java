@@ -118,9 +118,9 @@ public class SelectStatementTest
     public void testCompositePartitionKeyBounds() {
         QueryProcessor.executeOnceInternal("CREATE TABLE ks.composite_key (k1 int, k2 text, v int, PRIMARY KEY ((k1, k2)))");
         QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'a', 0)");
-        QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'b', 0)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'z', 0)");
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'a'").makeSlices(QueryOptions.DEFAULT));
-        Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'b'").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'z'").makeSlices(QueryOptions.DEFAULT));
     }
 
     @Test // New Test: Test Timestamp Boundaries
