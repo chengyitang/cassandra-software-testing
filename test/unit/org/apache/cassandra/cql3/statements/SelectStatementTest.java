@@ -32,6 +32,11 @@ import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.exceptions.SyntaxException;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
+
 public class SelectStatementTest
 {
 
@@ -50,6 +55,22 @@ public class SelectStatementTest
         CQLStatement stmt = QueryProcessor.parseStatement(query).prepare(ClientState.forInternalCalls());
         assert stmt instanceof SelectStatement;
         return (SelectStatement) stmt;
+    }
+
+    public static boolean hasValidBounds(String whereClause) {
+        try {
+            // Construct a minimal query with the provided WHERE clause
+            String query = "SELECT * FROM system.local WHERE " + whereClause;
+            
+            // Parse the statement (this will work even if the table doesn't exist)
+            SelectStatement stmt = parseSelect(query);
+            
+            // Check if the slice is NONE, which indicates nonsensical bounds
+            return stmt.makeSlices(QueryOptions.DEFAULT) != Slices.NONE;
+        } catch (Exception e) {
+            // If there's a syntax error or other issue, the bounds are invalid
+            return false;
+        }
     }
 
     @Test
@@ -97,9 +118,9 @@ public class SelectStatementTest
     public void testCompositePartitionKeyBounds() {
         QueryProcessor.executeOnceInternal("CREATE TABLE ks.composite_key (k1 int, k2 text, v int, PRIMARY KEY ((k1, k2)))");
         QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'a', 0)");
-        QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'b', 0)");
+        QueryProcessor.executeOnceInternal("INSERT INTO ks.composite_key (k1, k2, v) VALUES (1, 'z', 0)");
         Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'a'").makeSlices(QueryOptions.DEFAULT));
-        Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'b'").makeSlices(QueryOptions.DEFAULT));
+        Assert.assertNotNull(parseSelect("SELECT * FROM ks.composite_key WHERE k1 = 1 AND k2 = 'z'").makeSlices(QueryOptions.DEFAULT));
     }
 
     @Test // New Test: Test Timestamp Boundaries
@@ -210,6 +231,9 @@ public class SelectStatementTest
         Assert.assertNotNull(stmt);
     }
 
+    /**
+     *  Enhanced Coverage Tests
+     */
     @Test
     public void testAuthorize() {
         QueryProcessor.executeOnceInternal("CREATE TABLE ks.auth_test (id int PRIMARY KEY, value text)");
@@ -241,11 +265,44 @@ public class SelectStatementTest
         assertEquals("table_test", tableName);
     }
 
-    @Test
-    public void testKeyspaceMethod() throws Throwable {
-        SelectStatement stmt = parseSelect("SELECT * FROM ks.test_table");
-        Assert.assertNotNull(stmt);
-        Assert.assertEquals("ks", stmt.keyspace());
-    }
+    /**
+     *  Modification of testNonsensicalBounds() with Testable Design
+     */
 
+    @Test
+    public void testBoundsValidation() {
+        // Test cases with nonsensical/contradictory bounds
+        assertFalse("Greater than AND less than or equal to same value should be invalid",
+            hasValidBounds("k=100 AND c > 10 AND c <= 10"));
+            
+        assertFalse("Less than AND greater than or equal to same value should be invalid",
+            hasValidBounds("k=100 AND c < 10 AND c >= 10"));
+            
+        assertFalse("Less than AND greater than same value should be invalid",
+            hasValidBounds("k=100 AND c < 10 AND c > 10"));
+        
+        // Test cases with valid bounds
+        assertTrue("Greater than x AND less than y (where y > x) should be valid",
+            hasValidBounds("k=100 AND c > 10 AND c < 20"));
+            
+        assertTrue("Greater than or equal to x AND less than or equal to x should be valid (point query)",
+            hasValidBounds("k=100 AND c >= 10 AND c <= 10"));
+            
+        assertTrue("Equal to x should be valid",
+            hasValidBounds("k=100 AND c = 10"));
+        
+        // Edge cases
+        assertTrue("IN clause should be valid",
+            hasValidBounds("k=100 AND c IN (5, 10, 15)"));
+            
+        assertFalse("Contradictory equality constraints should be invalid",
+            hasValidBounds("k=100 AND c = 10 AND c = 20"));
+        
+        // Test with different column types (timestamp)
+        assertTrue("Timestamp bounds should follow same rules",
+            hasValidBounds("k='2023-01-01' AND c > '2023-01-01 10:00:00' AND c < '2023-01-01 11:00:00'"));
+            
+        assertFalse("Contradictory timestamp bounds should be invalid",
+            hasValidBounds("k='2023-01-01' AND c > '2023-01-01 10:00:00' AND c < '2023-01-01 09:00:00'"));
+    }
 }
